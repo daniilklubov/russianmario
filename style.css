@@ -34,3 +34,12 @@ canvas {
   background: linear-gradient(#4da6ff, #bde4ff 70%, #87be4f 70%, #3d7724);
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
 }
+
+
+.build {
+  text-align: center;
+  margin: 0 0 1rem;
+  font-size: 0.86rem;
+  opacity: 0.82;
+  letter-spacing: 0.02em;
+}

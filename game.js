@@ -36,14 +36,24 @@ const bottles = [
   { x: 1960, y: 210, collected: false },
 ];
 
+const bears = [
+  { x: 500, y: 328, w: 42, h: 32, minX: 430, maxX: 700, speed: 1.2, dir: 1 },
+  { x: 1090, y: 268, w: 42, h: 32, minX: 930, maxX: 1200, speed: 1, dir: -1 },
+  { x: 1730, y: 328, w: 42, h: 32, minX: 1610, maxX: 1960, speed: 1.4, dir: 1 },
+];
+
 const keys = { left: false, right: false, up: false };
 let score = 0;
 let cameraX = 0;
 let win = false;
+let hitCooldown = 0;
+let bearWarning = '';
 
 function setStatus() {
   if (win) {
     statusText.textContent = `You won! Bottles collected: ${score}/${bottles.length}. Press R to restart.`;
+  } else if (bearWarning) {
+    statusText.textContent = `${bearWarning} Bottles collected: ${score}/${bottles.length}`;
   } else {
     statusText.textContent = `Bottles collected: ${score}/${bottles.length}`;
   }
@@ -56,7 +66,12 @@ function resetGame() {
   player.vy = 0;
   score = 0;
   win = false;
+  hitCooldown = 0;
+  bearWarning = '';
   bottles.forEach((b) => (b.collected = false));
+  bears.forEach((bear) => {
+    bear.dir = 1;
+  });
   setStatus();
 }
 
@@ -69,6 +84,14 @@ function circleRectCollision(cx, cy, r, rx, ry, rw, rh) {
 }
 
 function update() {
+  if (hitCooldown > 0) {
+    hitCooldown -= 1;
+    if (hitCooldown === 0 && bearWarning) {
+      bearWarning = '';
+      setStatus();
+    }
+  }
+
   if (keys.left) player.vx = -player.speed;
   else if (keys.right) player.vx = player.speed;
   else player.vx = 0;
@@ -122,14 +145,46 @@ function update() {
     }
   }
 
+  for (const bear of bears) {
+    bear.x += bear.speed * bear.dir;
+    if (bear.x <= bear.minX || bear.x + bear.w >= bear.maxX) {
+      bear.dir *= -1;
+      bear.x = Math.max(bear.minX, Math.min(bear.x, bear.maxX - bear.w));
+    }
+
+    const touchBear =
+      player.x < bear.x + bear.w &&
+      player.x + player.w > bear.x &&
+      player.y < bear.y + bear.h &&
+      player.y + player.h > bear.y;
+
+    if (touchBear && hitCooldown === 0) {
+      hitCooldown = 45;
+      bearWarning = 'A bear blocked you!';
+      player.vx = bear.dir > 0 ? 6 : -6;
+      player.vy = -8;
+      player.x += bear.dir > 0 ? 28 : -28;
+      player.x = Math.max(0, Math.min(player.x, worldWidth - player.w));
+      setStatus();
+    }
+  }
+
   cameraX = Math.max(0, Math.min(player.x - canvas.width * 0.35, worldWidth - canvas.width));
 }
 
 function drawHat(x, y) {
-  ctx.fillStyle = '#9f0404';
-  ctx.fillRect(x + 3, y - 8, 28, 8);
-  ctx.fillStyle = '#f4f4f4';
-  ctx.fillRect(x, y - 4, 34, 5);
+  // Ushanka crown
+  ctx.fillStyle = '#6f2f14';
+  ctx.fillRect(x + 4, y - 10, 26, 8);
+  // Front fur band
+  ctx.fillStyle = '#d7c4a8';
+  ctx.fillRect(x + 1, y - 4, 32, 7);
+  // Side ear flaps
+  ctx.fillRect(x - 2, y - 2, 6, 10);
+  ctx.fillRect(x + 30, y - 2, 6, 10);
+  // Small red badge
+  ctx.fillStyle = '#b61e1e';
+  ctx.fillRect(x + 15, y - 8, 4, 4);
 }
 
 function drawPlayer() {
@@ -153,12 +208,35 @@ function drawBottle(bottle) {
   const x = bottle.x - cameraX;
   const y = bottle.y;
 
-  ctx.fillStyle = '#8ae173';
-  ctx.fillRect(x + 4, y + 4, 8, 20);
-  ctx.fillStyle = '#def8c9';
-  ctx.fillRect(x + 6, y + 0, 4, 6);
+  // Bottle glass body
+  ctx.fillStyle = '#74d184';
+  ctx.fillRect(x + 2, y + 8, 12, 18);
+  // Neck
+  ctx.fillRect(x + 5, y + 3, 6, 6);
+  // Cap
+  ctx.fillStyle = '#d9e6f5';
+  ctx.fillRect(x + 5, y, 6, 3);
+  // Label
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 5, y + 12, 6, 6);
+  ctx.fillRect(x + 4, y + 13, 8, 8);
+  ctx.fillStyle = '#2e5aac';
+  ctx.fillRect(x + 5, y + 16, 6, 2);
+  // Glass shine
+  ctx.fillStyle = '#bdf2ca';
+  ctx.fillRect(x + 3, y + 10, 2, 12);
+}
+
+function drawBear(bear) {
+  const x = bear.x - cameraX;
+  const y = bear.y;
+  ctx.fillStyle = '#5a3a22';
+  ctx.fillRect(x + 4, y + 8, 34, 20);
+  ctx.fillRect(x + 10, y, 22, 14);
+  ctx.fillStyle = '#e0c1a2';
+  ctx.fillRect(x + 16, y + 7, 10, 7);
+  ctx.fillStyle = '#3a2414';
+  ctx.fillRect(x + 8, y + 26, 8, 6);
+  ctx.fillRect(x + 26, y + 26, 8, 6);
 }
 
 function drawPlatform(p) {
@@ -197,6 +275,10 @@ function draw() {
 
   for (const bottle of bottles) {
     if (!bottle.collected) drawBottle(bottle);
+  }
+
+  for (const bear of bears) {
+    drawBear(bear);
   }
 
   drawPlayer();
