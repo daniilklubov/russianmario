@@ -22,7 +22,3 @@ python3 -m http.server 8000
 ## Goal
 
 Collect all vodka bottles to win.
-
-## New obstacles
-
-- Bears patrol parts of the level and block your progress by knocking you back.
